@@ -1,4 +1,4 @@
-/* Original canvas implementation of a thin, spring-following cursor trail. */
+/* Original canvas implementation of a white, spring-following cursor trail. */
 (() => {
   const fine = matchMedia('(hover: hover) and (pointer: fine)');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -8,7 +8,8 @@
   document.body.append(canvas);
   const ctx = canvas.getContext('2d');
   if (!ctx) { canvas.remove(); return; }
-  const points = Array.from({length: 36}, () => ({x: 0, y: 0, vx: 0, vy: 0}));
+  const settings = {pointsCount: 40, lineWidth: .3, springStrength: .4, dampening: .5};
+  const points = Array.from({length: settings.pointsCount}, () => ({x: 0, y: 0, vx: 0, vy: 0}));
   let target = {x: 0, y: 0}, frame = 0, last = 0, accumulator = 0, active = false;
   let initialized = false, width = innerWidth, height = innerHeight;
   const allowed = () => fine.matches && !reduced.matches && !document.hidden;
@@ -29,8 +30,8 @@
     let energy = 0;
     points.forEach((p, i) => {
       const lead = i ? points[i - 1] : target;
-      p.vx = (p.vx + (lead.x - p.x) * .4) * .5;
-      p.vy = (p.vy + (lead.y - p.y) * .4) * .5;
+      p.vx = (p.vx + (lead.x - p.x) * settings.springStrength) * settings.dampening;
+      p.vy = (p.vy + (lead.y - p.y) * settings.springStrength) * settings.dampening;
       p.x += p.vx; p.y += p.vy;
       energy += Math.abs(p.vx) + Math.abs(p.vy) + Math.abs(lead.x - p.x) + Math.abs(lead.y - p.y);
     });
@@ -46,9 +47,8 @@
     clear();
     for (let i = 1; i < points.length - 1; i++) {
       const prev = points[i - 1], p = points[i], next = points[i + 1];
-      const taper = 1 - i / points.length;
-      ctx.lineWidth = .15 + .7 * taper;
-      ctx.strokeStyle = `rgba(53,76,61,${.18 + .6 * taper})`;
+      ctx.lineWidth = Math.max(settings.lineWidth, (points.length - i) * settings.lineWidth);
+      ctx.strokeStyle = '#ffffff';
       ctx.beginPath();
       ctx.moveTo((prev.x + p.x) / 2, (prev.y + p.y) / 2);
       ctx.quadraticCurveTo(p.x, p.y, (p.x + next.x) / 2, (p.y + next.y) / 2);
